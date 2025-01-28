@@ -1,10 +1,15 @@
 // middleware/errorHandler.js
-const logger = require('./logger'); // Import your logger (Winston or Bunyan)
+const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
 
-    logger.error(err.stack); // Log the full error stack (using your logger)
+    // Log the error with logger.
+    if (err instanceof CustomError) {
+        logger.error(err.message, { errors: err.errors, stack: err.stack }); // Log custom error details
+    } else {
+        logger.error(err.message, { stack: err.stack }); // Log regular error details
+    }
 
     let message = 'Something went wrong!';
     let errors = [];
@@ -40,7 +45,6 @@ class CustomError extends Error {
         this.name = this.constructor.name;
         this.errors = errors;
         this.statusCode = statusCode;
-
         Error.captureStackTrace(this, this.constructor);
     }
 }

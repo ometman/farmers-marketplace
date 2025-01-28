@@ -2,8 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit')
-const errorHandler = require('./middleware/errorHandler')
+const rateLimit = require('express-rate-limit');
+const logger = require('./utils/logger');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -29,5 +30,12 @@ app.use(errorHandler);
 
 app.use(morgan('dev')); // output error coloring
 app.use(express.json()); // middleware parsing only json, matching content-type with header
+
+// logger
+
+logger.info('Server started');
+logger.debug('This is a debug message');
+logger.error('Database connection failed', { error: err }); // Include error details
+logger.warn('A potential issue was detected');
 
 module.exports = app;

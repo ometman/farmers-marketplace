@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit')
+const errorHandler = require('./middleware/errorHandler')
 
 const app = express();
 
@@ -22,6 +23,9 @@ const limiter = rateLimit({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 app.use(limiter);
+
+// Error handling middleware
+app.use(errorHandler);
 
 app.use(morgan('dev')); // output error coloring
 app.use(express.json()); // middleware parsing only json, matching content-type with header

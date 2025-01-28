@@ -1,19 +1,45 @@
 require('dotenv').config();
-const app = require('./app');
-const pool = require('./utils/db')
+const express = require('express');
+const logger = require('../logger'); // Ensure you have a logger utility
+const { sequelize, databaseConnectionRetry } = require('./utils/db'); // Updated Sequelize instance and retry logic
 
+const app = express();
 const PORT = process.env.PORT || 5000;
-
-// set pool for app
-app.set('db', pool)
 
 // Test API Server response
 app.get('/', (req, res) => {
-    res.send('APP Server API is running...')
+  res.send('APP Server API is running...');
 });
 
-// Test Server in console
-app.listen(PORT, () => {console.log(`Server is running on port ${PORT}`)
-})
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    // Use Sequelize's `authenticate` to check the DB connection
+    await sequelize.authenticate();
+    res.status(200).send('Database is healthy');
+  } catch (err) {
+    logger.error('Database connection error:', {
+      error: err.message,
+      stack: err.stack,
+    });
+    res.status(500).send('Database connection error');
+  }
+});
 
+// Start the server after checking database connection
+(async () => {
+  try {
+    await databaseConnectionRetry; // Ensure the DB is connected before starting the server
+    logger.info('Database connected successfully.');
 
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    logger.error('Failed to start the server due to database connection issues.', {
+      error: err.message,
+      stack: err.stack,
+    });
+    process.exit(1); // Exit if database connection fails
+  }
+})();

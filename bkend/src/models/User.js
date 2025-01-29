@@ -1,46 +1,67 @@
-// models/User.js
-const { Model, DataTypes } = require('sequelize');
+// models/User.js (Core User Model)
+const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const bcrypt = require('bcryptjs');
 
-class User extends Model {}
-
-User.init({
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  username: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true,
+const User = sequelize.define('User', {
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
     },
-  },
-  passwordHash: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  role: {
-    type: DataTypes.ENUM('farmer', 'buyer', 'admin'),
-    allowNull: false,
-  },
+    username: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        validate: {
+            notEmpty: { msg: 'Username cannot be empty' },
+        },
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        validate: { isEmail: { msg: 'Invalid email address' } },
+    },
+    password_hash: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    phone_number: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+            isNumeric: { msg: 'Phone number must be numeric' },
+            len: [10, 20], // Adjust length as needed
+        },
+    },
+    role: {
+        type: DataTypes.ENUM('farmer', 'buyer', 'admin'),
+        allowNull: false,
+    },
 }, {
-  sequelize,
-  modelName: 'User',
-  timestamps: true,
-  underscored: true,
+    tableName: 'users',
+    timestamps: true,
+    underscored: true,
+    hooks: {
+        beforeCreate: async (user) => {
+            const salt = await bcrypt.genSalt(10);
+            user.password_hash = await bcrypt.hash(user.password_hash, salt);
+        },
+        beforeUpdate: async (user) => {
+            if (user.changed('password_hash')) {
+                const salt = await bcrypt.genSalt(10);
+                user.password_hash = await bcrypt.hash(user.password_hash, salt);
+            }
+        },
+    },
 });
 
-// User.hasMany(Product, { 
-//   foreignKey: 'farmer_id', as: 'products' 
-// }); // A farmer has many products
+User.prototype.comparePassword = async function (password) {
+    return bcrypt.compare(password, this.password_hash);
+};
+
+module.exports = User;
 
 
 module.exports = User;

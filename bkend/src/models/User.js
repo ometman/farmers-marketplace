@@ -57,11 +57,23 @@ const User = sequelize.define('User', {
     },
 });
 
-User.prototype.comparePassword = async function (password) {
-    return bcrypt.compare(password, this.password_hash);
-};
+    User.prototype.comparePassword = async function (password) {
+        return bcrypt.compare(password, this.password_hash);
+    };
 
-module.exports = User;
+    // Add the association to roles (Many-to-many)
+    User.belongsToMany(Role, {
+        through: 'users_user_roles', // Name of the join table
+        foreignKey: 'user_id',       // Foreign key in the join table that refers to User
+        otherKey: 'role_id',         // Foreign key in the join table that refers to Role
+        as: 'roles',                // Alias for the association
+    });
+
+    User.prototype.hasRole = async function (roleName) {
+        const roles = await this.getRoles();
+        return roles.some(role => role.name === roleName);
+    }
+
 
 
 module.exports = User;
